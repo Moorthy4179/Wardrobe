@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { IoMail, IoLockClosed } from 'react-icons/io5';
@@ -9,8 +9,16 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Use env var or fallback URL
+  // Get API URL from environment variable
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://alumnibackend.42web.io/vwobackend';
+
+  // Debug: Log environment variables (remove this in production)
+  useEffect(() => {
+    console.log('🔧 Environment Debug Info:');
+    console.log('API_BASE_URL:', API_BASE_URL);
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('All NEXT_PUBLIC vars:', Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_')));
+  }, [API_BASE_URL]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -29,38 +37,58 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      // Configure axios with timeout and proper headers
-      const config = {
-        timeout: 10000, // 10 seconds timeout
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const loginUrl = `${API_BASE_URL}/login.php`;
+      console.log('🚀 Making request to:', loginUrl);
+
+      const response = await axios.get(loginUrl, {
         params: {
           username: credentials.username,
           password: credentials.password,
         },
-      };
+        timeout: 15000,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      const response = await axios.get(`${API_BASE_URL}/login.php`, config);
+      console.log('✅ Response received:', response.data);
 
       if (response.data && response.data.success) {
-        // Store user data if needed
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        // Store user data
+        if (typeof Storage !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+          console.log('👤 User data stored:', response.data.user);
+        }
+        
+        console.log('🎉 Login successful, redirecting to /dash');
         navigate('/dash');
       } else {
-        setError(response.data?.message || 'Invalid username or password.');
+        const errorMsg = response.data?.message || 'Invalid username or password.';
+        console.log('❌ Login failed:', errorMsg);
+        setError(errorMsg);
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('🔥 Login error:', error);
       
+      // Detailed error logging
+      if (error.response) {
+        console.log('Response error:', error.response.status, error.response.data);
+        setError(`Server error: ${error.response.data?.message || error.response.statusText}`);
+      } else if (error.request) {
+        console.log('Request error (no response):', error.request);
+        setError('No response from server. Please check if the backend is running.');
+      } else {
+        console.log('Setup error:', error.message);
+        setError(`Request setup error: ${error.message}`);
+      }
+
+      // Specific error handling
       if (error.code === 'ERR_NETWORK') {
-        setError('Network error. Please check your connection and try again.');
+        setError('Network error. Please check your connection and backend server.');
       } else if (error.code === 'ECONNABORTED') {
         setError('Request timed out. Please try again.');
-      } else if (error.response) {
-        setError(error.response.data?.message || 'Server error occurred.');
-      } else {
-        setError('An unexpected error occurred. Please try again later.');
+      } else if (error.message.includes('CORS')) {
+        setError('CORS error. Please check backend CORS configuration.');
       }
     } finally {
       setLoading(false);
@@ -78,21 +106,15 @@ const LoginPage = () => {
       alignItems: 'center',
       height: '100vh',
       width: '100%',
-      // Changed to HTTPS URL to fix mixed content warning
-      backgroundImage: "url('https://codingstella.com/wp-content/uploads/2024/01/download-5.jpeg')",
+      backgroundImage: "url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')",
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       animation: 'animateBg 5s linear infinite',
     },
-    '@keyframes animateBg': {
-      to: {
-        filter: 'hue-rotate(360deg)',
-      },
-    },
     loginBox: {
       position: 'relative',
       width: '400px',
-      height: '450px',
+      height: '500px', // Slightly increased for debug info
       background: 'transparent',
       borderRadius: '15px',
       border: '2px solid rgba(255, 255, 255, 0.5)',
@@ -105,11 +127,22 @@ const LoginPage = () => {
       fontSize: '2em',
       color: '#fff',
       textAlign: 'center',
+      marginBottom: '10px',
+    },
+    debugInfo: {
+      fontSize: '0.7em',
+      color: 'rgba(255, 255, 255, 0.8)',
+      textAlign: 'center',
+      marginBottom: '15px',
+      padding: '5px',
+      backgroundColor: 'rgba(0, 0, 0, 0.3)',
+      borderRadius: '5px',
+      wordBreak: 'break-all',
     },
     inputBox: {
       position: 'relative',
       width: '310px',
-      margin: '30px 0',
+      margin: '20px 0',
       borderBottom: '1px solid #fff',
     },
     input: {
@@ -122,29 +155,12 @@ const LoginPage = () => {
       color: '#fff',
       padding: '0 35px 0 5px',
     },
-    label: {
-      position: 'absolute',
-      top: '50%',
-      left: '5px',
-      transform: 'translateY(-50%)',
-      fontSize: '1em',
-      color: '#fff',
-      pointerEvents: 'none',
-      transition: '0.5s',
-    },
     icon: {
       position: 'absolute',
       right: '8px',
       top: '50%',
       color: '#fff',
       transform: 'translateY(-50%)',
-    },
-    rememberForgot: {
-      margin: '-15px 0 15px',
-      fontSize: '0.9em',
-      color: '#fff',
-      display: 'flex',
-      justifyContent: 'space-between',
     },
     button: {
       width: '100%',
@@ -157,22 +173,24 @@ const LoginPage = () => {
       color: '#000',
       fontWeight: '500',
       opacity: loading ? 0.7 : 1,
+      transition: 'all 0.3s ease',
     },
     registerLink: {
       fontSize: '0.9em',
       color: '#fff',
       textAlign: 'center',
-      margin: '25px 0 10px',
+      margin: '20px 0 10px',
     },
     error: {
       color: '#ff6b6b',
-      fontSize: '0.9rem',
+      fontSize: '0.85rem',
       marginBottom: '1rem',
       textAlign: 'center',
       backgroundColor: 'rgba(255, 107, 107, 0.1)',
-      padding: '8px',
-      borderRadius: '4px',
+      padding: '10px',
+      borderRadius: '8px',
       border: '1px solid rgba(255, 107, 107, 0.3)',
+      backdropFilter: 'blur(10px)',
     },
   };
 
@@ -181,7 +199,14 @@ const LoginPage = () => {
       <div style={styles.loginBox}>
         <form onSubmit={handleSubmit}>
           <h2 style={styles.title}>Login</h2>
-          {error && <p style={styles.error}>{error}</p>}
+          
+          {/* Debug info - remove this in production */}
+          <div style={styles.debugInfo}>
+            API: {API_BASE_URL}
+          </div>
+          
+          {error && <div style={styles.error}>{error}</div>}
+          
           <div style={styles.inputBox}>
             <span style={styles.icon}>
               <IoMail />
@@ -189,15 +214,15 @@ const LoginPage = () => {
             <input
               type="text"
               name="username"
-              placeholder="Enter your username or email"
+              placeholder="Enter username or email"
               style={styles.input}
               value={credentials.username}
               onChange={handleChange}
               disabled={loading}
               required
             />
-            <label style={styles.label}></label>
           </div>
+          
           <div style={styles.inputBox}>
             <span style={styles.icon}>
               <IoLockClosed />
@@ -205,23 +230,28 @@ const LoginPage = () => {
             <input
               type="password"
               name="password"
-              placeholder="Enter your password"
+              placeholder="Enter password"
               style={styles.input}
               value={credentials.password}
               onChange={handleChange}
               disabled={loading}
               required
             />
-            <label style={styles.label}></label>
           </div>
+          
           <button type="submit" style={styles.button} disabled={loading}>
             {loading ? 'Logging in...' : 'Login'}
           </button>
+          
           <div style={styles.registerLink}>
             <p>
               Don't have an account?{' '}
               <span
-                style={{ cursor: 'pointer', fontWeight: '600' }}
+                style={{ 
+                  cursor: 'pointer', 
+                  fontWeight: '600',
+                  textDecoration: 'underline'
+                }}
                 onClick={handleSignUpClick}
               >
                 Register
