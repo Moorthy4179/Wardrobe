@@ -27,16 +27,14 @@ const LoginPage = () => {
     setError('');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/login.php`, {
-        method: 'POST',
+      // Use GET request to avoid CORS preflight issues
+      const url = `${API_BASE_URL}/login-get.php?username=${encodeURIComponent(credentials.username.trim())}&password=${encodeURIComponent(credentials.password)}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({
-          username: credentials.username.trim(),
-          password: credentials.password,
-        }),
       });
 
       const data = await response.json();
