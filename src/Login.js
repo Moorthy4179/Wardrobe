@@ -1,39 +1,47 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { IoMail, IoLockClosed } from 'react-icons/io5'; 
+import { IoMail, IoLockClosed } from 'react-icons/io5';
 
 const LoginPage = () => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  // Use env var or fallback URL
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://alumnibackend.42web.io/vwobackend';
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setCredentials({ ...credentials, [name]: value });
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!credentials.username || !credentials.password) {
       setError('Please fill in both fields.');
-    } else {
-      setError('');
-      try {
-        const response = await axios.get(`${API_BASE_URL}/login.php`, {
-  params: {
-    username: credentials.username, 
-    password: credentials.password,
-  },
-});
-        if (response.data.success) {
-          navigate('/dash');
-        } else {
-          setError('Invalid username or password.');
-        }
-      } catch (error) {
-        console.error('Login error:', error);
-        setError('An error occurred during login. Please try again later.');
+      return;
+    }
+
+    setError('');
+
+    try {
+      const response = await axios.get(`${API_BASE_URL}/login.php`, {
+        params: {
+          username: credentials.username,
+          password: credentials.password,
+        },
+      });
+
+      if (response.data.success) {
+        navigate('/dash');
+      } else {
+        setError('Invalid username or password.');
       }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('An error occurred during login. Please try again later.');
     }
   };
 
@@ -175,11 +183,16 @@ const LoginPage = () => {
             />
             <label style={styles.label}></label>
           </div>
-          <button type="submit" style={styles.button}>Login</button>
+          <button type="submit" style={styles.button}>
+            Login
+          </button>
           <div style={styles.registerLink}>
             <p>
               Don't have an account?{' '}
-              <span style={{ cursor: 'pointer', fontWeight: '600' }} onClick={handleSignUpClick}>
+              <span
+                style={{ cursor: 'pointer', fontWeight: '600' }}
+                onClick={handleSignUpClick}
+              >
                 Register
               </span>
             </p>
