@@ -19,10 +19,12 @@ const LoginPage = () => {
     } else {
       setError('');
       try {
-        const response = await axios.get(`${API_BASE_URL}/login.php`, {
-  params: {
-    username: credentials.username, 
-    password: credentials.password,
+        const response = await axios.post(`${API_BASE_URL}/login.php`, {
+  username: credentials.username,
+  password: credentials.password,
+}, {
+  headers: {
+    'Content-Type': 'application/json',
   },
 });
         if (response.data.success) {
@@ -48,7 +50,7 @@ const LoginPage = () => {
       alignItems: 'center',
       height: '100vh',
       width: '100%',
-      backgroundImage: "url('http://codingstella.com/wp-content/uploads/2024/01/download-5.jpeg')",
+      backgroundImage: "url('https://codingstella.com/wp-content/uploads/2024/01/download-5.jpeg')",
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       animation: 'animateBg 5s linear infinite',
