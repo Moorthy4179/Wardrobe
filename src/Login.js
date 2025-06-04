@@ -6,6 +6,7 @@ import { IoMail, IoLockClosed } from 'react-icons/io5';
 const LoginPage = () => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   // Use env var or fallback URL
@@ -25,23 +26,44 @@ const LoginPage = () => {
     }
 
     setError('');
+    setLoading(true);
 
     try {
-      const response = await axios.get(`${API_BASE_URL}/login.php`, {
+      // Configure axios with timeout and proper headers
+      const config = {
+        timeout: 10000, // 10 seconds timeout
+        headers: {
+          'Content-Type': 'application/json',
+        },
         params: {
           username: credentials.username,
           password: credentials.password,
         },
-      });
+      };
 
-      if (response.data.success) {
+      const response = await axios.get(`${API_BASE_URL}/login.php`, config);
+
+      if (response.data && response.data.success) {
+        // Store user data if needed
+        localStorage.setItem('user', JSON.stringify(response.data.user));
         navigate('/dash');
       } else {
-        setError('Invalid username or password.');
+        setError(response.data?.message || 'Invalid username or password.');
       }
     } catch (error) {
       console.error('Login error:', error);
-      setError('An error occurred during login. Please try again later.');
+      
+      if (error.code === 'ERR_NETWORK') {
+        setError('Network error. Please check your connection and try again.');
+      } else if (error.code === 'ECONNABORTED') {
+        setError('Request timed out. Please try again.');
+      } else if (error.response) {
+        setError(error.response.data?.message || 'Server error occurred.');
+      } else {
+        setError('An unexpected error occurred. Please try again later.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -56,7 +78,8 @@ const LoginPage = () => {
       alignItems: 'center',
       height: '100vh',
       width: '100%',
-      backgroundImage: "url('http://codingstella.com/wp-content/uploads/2024/01/download-5.jpeg')",
+      // Changed to HTTPS URL to fix mixed content warning
+      backgroundImage: "url('https://codingstella.com/wp-content/uploads/2024/01/download-5.jpeg')",
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       animation: 'animateBg 5s linear infinite',
@@ -126,13 +149,14 @@ const LoginPage = () => {
     button: {
       width: '100%',
       height: '40px',
-      backgroundColor: '#fff',
+      backgroundColor: loading ? '#ccc' : '#fff',
       border: 'none',
       borderRadius: '40px',
-      cursor: 'pointer',
+      cursor: loading ? 'not-allowed' : 'pointer',
       fontSize: '1em',
       color: '#000',
       fontWeight: '500',
+      opacity: loading ? 0.7 : 1,
     },
     registerLink: {
       fontSize: '0.9em',
@@ -141,9 +165,14 @@ const LoginPage = () => {
       margin: '25px 0 10px',
     },
     error: {
-      color: 'red',
+      color: '#ff6b6b',
       fontSize: '0.9rem',
       marginBottom: '1rem',
+      textAlign: 'center',
+      backgroundColor: 'rgba(255, 107, 107, 0.1)',
+      padding: '8px',
+      borderRadius: '4px',
+      border: '1px solid rgba(255, 107, 107, 0.3)',
     },
   };
 
@@ -155,7 +184,7 @@ const LoginPage = () => {
           {error && <p style={styles.error}>{error}</p>}
           <div style={styles.inputBox}>
             <span style={styles.icon}>
-              <IoMail /> {/* Email Icon */}
+              <IoMail />
             </span>
             <input
               type="text"
@@ -164,13 +193,14 @@ const LoginPage = () => {
               style={styles.input}
               value={credentials.username}
               onChange={handleChange}
+              disabled={loading}
               required
             />
             <label style={styles.label}></label>
           </div>
           <div style={styles.inputBox}>
             <span style={styles.icon}>
-              <IoLockClosed /> {/* Lock Icon */}
+              <IoLockClosed />
             </span>
             <input
               type="password"
@@ -179,12 +209,13 @@ const LoginPage = () => {
               style={styles.input}
               value={credentials.password}
               onChange={handleChange}
+              disabled={loading}
               required
             />
             <label style={styles.label}></label>
           </div>
-          <button type="submit" style={styles.button}>
-            Login
+          <button type="submit" style={styles.button} disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
           </button>
           <div style={styles.registerLink}>
             <p>
