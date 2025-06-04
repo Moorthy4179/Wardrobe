@@ -7,6 +7,7 @@ const LoginPage = () => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://alumnibackend.42web.io/vwobackend';
   const handleChange = (e) => {
     const { name, value } = e.target;
     setCredentials({ ...credentials, [name]: value });
@@ -18,13 +19,12 @@ const LoginPage = () => {
     } else {
       setError('');
       try {
-        const response = await axios.get('http://localhost/vwobackend/login.php', {
-          params: {
-            username: credentials.username, 
-            password: credentials.password,
-          },
-        });
-
+        const response = await axios.get(`${API_BASE_URL}/login.php`, {
+  params: {
+    username: credentials.username, 
+    password: credentials.password,
+  },
+});
         if (response.data.success) {
           navigate('/dash');
         } else {

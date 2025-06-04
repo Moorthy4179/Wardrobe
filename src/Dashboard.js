@@ -13,20 +13,21 @@ const Dashboard = () => {
     favorites: 0,
   });
   const [loading, setLoading] = useState(true);
+ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://alumnibackend.42web.io/vwobackend';
   ChartJS.register(BarElement, CategoryScale, LinearScale, ChartDataLabels);
   useEffect(() => {
     const fetchStats = async () => {
-      try {
-        const response = await axios.get("http://localhost/vwobackend/dashboard.php");
-        if (response.data.success) {
-          setStats(response.data.data);
-        }
-      } catch (error) {
-        console.error("Error fetching dashboard stats:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  try {
+    const response = await axios.get(`${API_BASE_URL}/dashboard.php`);
+    if (response.data.success) {
+      setStats(response.data.data);
+    }
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+  } finally {
+    setLoading(false);
+  }
+};
     fetchStats();
   }, []);
 

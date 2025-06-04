@@ -12,16 +12,24 @@ const CalendarComponent = () => {
   const [currentMonth, setCurrentMonth] = useState(2); 
 
   const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://alumnibackend.42web.io/vwobackend';
 
   useEffect(() => {
     const fetchCalendarData = async () => {
       try {
         setLoading(true); 
-        const response = await fetch(
-          "http://localhost/vwobackend/fetch_calendar.php"
-        );
-        const data = await response.json();
+        const response = await fetch(`${API_BASE_URL}/fetch_calendar.php`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
 
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
         console.log("Fetched Data:", data);
 
         if (data.success) {
@@ -36,7 +44,8 @@ const CalendarComponent = () => {
                   ? item.items[category]
                   : [item.items[category]];
                 categoryItems.forEach((product) => {
-                  const imageUrl = `http://localhost/vwobackend/uploads/${product.image_url}`;
+                  // Updated image URL to use InfinityFree backend
+                  const imageUrl = `https://alumnibackend.42web.io/uploads/${product.image_url}`;
                   console.log("Image URL:", imageUrl);
                   itemImages.push(imageUrl);
                 });
@@ -48,18 +57,92 @@ const CalendarComponent = () => {
 
           setCalendarData(dataByDate);
         } else {
-          setError("No data found.");
+          setError(data.message || "No data found.");
         }
       } catch (error) {
         console.error("Error fetching calendar data:", error);
-        setError("Error fetching data.");
+        setError(`Error fetching data: ${error.message}`);
       } finally {
         setLoading(false); 
       }
     };
 
     fetchCalendarData();
-  }, []);
+  }, [API_BASE_URL]);
+
+  // Function to handle favorites (you can extend this to save to backend)
+  const handleFavoriteClick = async (imgUrl) => {
+    try {
+      // Update local state immediately for better UX
+      setFavorites((prevFavorites) => {
+        const isFavorited = prevFavorites[imgUrl];
+        const updatedFavorites = { ...prevFavorites };
+        if (isFavorited) {
+          delete updatedFavorites[imgUrl];
+        } else {
+          updatedFavorites[imgUrl] = true;
+        }
+        return updatedFavorites;
+      });
+
+      // Optional: Save to backend
+      const response = await fetch(`${API_BASE_URL}/favorites.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image_url: imgUrl,
+          action: favorites[imgUrl] ? 'remove' : 'add'
+        })
+      });
+
+      if (!response.ok) {
+        console.warn('Failed to sync favorite with backend');
+      }
+    } catch (error) {
+      console.error('Error handling favorite:', error);
+      // Revert local state if backend call fails
+      setFavorites((prevFavorites) => {
+        const updatedFavorites = { ...prevFavorites };
+        if (favorites[imgUrl]) {
+          updatedFavorites[imgUrl] = true;
+        } else {
+          delete updatedFavorites[imgUrl];
+        }
+        return updatedFavorites;
+      });
+    }
+  };
+
+  // Load favorites from backend on component mount
+  useEffect(() => {
+    const loadFavorites = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/favorites.php`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.favorites) {
+            const favoritesObj = {};
+            data.favorites.forEach(fav => {
+              favoritesObj[fav.image_url] = true;
+            });
+            setFavorites(favoritesObj);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading favorites:', error);
+      }
+    };
+
+    loadFavorites();
+  }, [API_BASE_URL]);
 
   const openPopup = (date) => {
     setSelectedDate(date);
@@ -69,19 +152,6 @@ const CalendarComponent = () => {
   const closePopup = () => {
     setShowPopup(false);
     setSelectedDate(null);
-  };
-
-  const handleFavoriteClick = (imgUrl) => {
-    setFavorites((prevFavorites) => {
-      const isFavorited = prevFavorites[imgUrl];
-      const updatedFavorites = { ...prevFavorites };
-      if (isFavorited) {
-        delete updatedFavorites[imgUrl];
-      } else {
-        updatedFavorites[imgUrl] = true;
-      }
-      return updatedFavorites;
-    });
   };
 
   const generateCalendar = (year, month) => {
@@ -134,7 +204,11 @@ const CalendarComponent = () => {
                         src={imgUrl}
                         alt={`Image for ${day}`}
                         className="calendar-image"
-                        onError={(e) => (e.target.style.display = "none")} 
+                        onError={(e) => {
+                          console.warn(`Failed to load image: ${imgUrl}`);
+                          e.target.style.display = "none";
+                        }}
+                        loading="lazy"
                       />
                     ))}
                   </div>
@@ -165,21 +239,42 @@ const CalendarComponent = () => {
     }
   };
 
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return (
+      <div className="calendar-container">
+        <Navbar />
+        <div className="loading">
+          <div className="loading-spinner"></div>
+          <p>Loading calendar data...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="error">{error}</div>;
+    return (
+      <div className="calendar-container">
+        <Navbar />
+        <div className="error">
+          <p>⚠️ {error}</p>
+          <button onClick={() => window.location.reload()}>Retry</button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="calendar-container">
       <Navbar />
       <div className="calendar-header">
-        <button onClick={handlePrevMonth}>{"<"}</button>
-        {`${["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][currentMonth - 1]} ${currentYear}`}
-        <button onClick={handleNextMonth}>{">"}</button>
+        <button onClick={handlePrevMonth} aria-label="Previous month">{"<"}</button>
+        <span>{`${monthNames[currentMonth - 1]} ${currentYear}`}</span>
+        <button onClick={handleNextMonth} aria-label="Next month">{">"}</button>
       </div>
       {renderCalendar()}
 
@@ -187,16 +282,25 @@ const CalendarComponent = () => {
         <div className="popup-overlay" onClick={closePopup}>
           <div className="popup-content" onClick={(e) => e.stopPropagation()}>
             <div className="popup-header">
-              <h2>Outfits of {`${["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][currentMonth - 1]} ${selectedDate.split('-')[2]}`}</h2>
+              <h2>Outfits of {`${monthNames[currentMonth - 1]} ${selectedDate.split('-')[2]}`}</h2>
             </div>
             {calendarData[selectedDate] && calendarData[selectedDate].length > 0 ? (
               <div className="popup-images">
                 {calendarData[selectedDate].map((img, index) => (
                   <div key={index} className="popup-image-container">
-                    <img src={img} alt={`Item ${index + 1}`} />
+                    <img 
+                      src={img} 
+                      alt={`Item ${index + 1}`}
+                      loading="lazy"
+                      onError={(e) => {
+                        console.warn(`Failed to load popup image: ${img}`);
+                        e.target.src = '/placeholder-image.png'; // Add a placeholder image
+                      }}
+                    />
                     <button
                       className="favorite-button"
                       onClick={() => handleFavoriteClick(img)}
+                      aria-label={favorites[img] ? "Remove from favorites" : "Add to favorites"}
                     >
                       {favorites[img] ? "❤️" : "🤍"}
                     </button>
@@ -229,7 +333,7 @@ const CalendarComponent = () => {
           border-radius: 5px;
           margin-bottom: 10px;
           display: flex;
-          justify-content: center;
+          justify-content: space-between;
           align-items: center;
         }
 
@@ -239,7 +343,12 @@ const CalendarComponent = () => {
           font-size: 1.5em;
           color: white;
           cursor: pointer;
-          padding: 0 10px;
+          padding: 0 15px;
+          transition: opacity 0.2s;
+        }
+
+        .calendar-header button:hover {
+          opacity: 0.7;
         }
 
         .calendar-weekdays {
@@ -251,6 +360,7 @@ const CalendarComponent = () => {
 
         .calendar-weekday {
           font-weight: bold;
+          color: #333;
         }
 
         .calendar-grid {
@@ -270,16 +380,18 @@ const CalendarComponent = () => {
           background: white;
           border-radius: 5px;
           cursor: pointer;
-          transition: transform 0.2s ease-in-out;
+          transition: transform 0.2s ease-in-out, box-shadow 0.2s;
         }
 
         .calendar-cell:hover {
           transform: scale(1.05);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         .date-number {
           font-weight: bold;
           margin-bottom: 5px;
+          color: #333;
         }
 
         .image-container {
@@ -294,6 +406,50 @@ const CalendarComponent = () => {
           max-width: 40px;
           max-height: 40px;
           border-radius: 5px;
+          object-fit: cover;
+        }
+
+        .loading {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 200px;
+          color: #666;
+        }
+
+        .loading-spinner {
+          width: 40px;
+          height: 40px;
+          border: 4px solid #f3f3f3;
+          border-top: 4px solid #76c7f0;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin-bottom: 10px;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        .error {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 200px;
+          color: #d32f2f;
+        }
+
+        .error button {
+          margin-top: 10px;
+          padding: 8px 16px;
+          background-color: #76c7f0;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
         }
 
         .popup-overlay {
@@ -306,6 +462,7 @@ const CalendarComponent = () => {
           display: flex;
           justify-content: center;
           align-items: center;
+          z-index: 1000;
         }
 
         .popup-content {
@@ -317,13 +474,20 @@ const CalendarComponent = () => {
           max-width: 500px;
           position: relative;
           text-align: center;
+          max-height: 80vh;
+          overflow-y: auto;
         }
 
         .popup-header {
           display: flex;
-          justify-content: space-between;
+          justify-content: center;
           align-items: center;
-          position: relative;
+          margin-bottom: 15px;
+        }
+
+        .popup-header h2 {
+          margin: 0;
+          color: #333;
         }
 
         .popup-images {
@@ -332,6 +496,11 @@ const CalendarComponent = () => {
           overflow-x: auto;
           gap: 10px;
           padding: 10px;
+        }
+
+        .popup-image-container {
+          position: relative;
+          min-width: 100px;
         }
 
         .popup-images img {
@@ -347,8 +516,15 @@ const CalendarComponent = () => {
           font-size: 1.5em;
           cursor: pointer;
           position: absolute;
-          left: 10px;
-          bottom: 10px;
+          top: 5px;
+          right: 5px;
+          background-color: rgba(255, 255, 255, 0.8);
+          border-radius: 50%;
+          width: 30px;
+          height: 30px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .popup-footer {
@@ -358,12 +534,37 @@ const CalendarComponent = () => {
 
         .close-button {
           font-size: 1.2em;
-          padding: 5px 10px;
-          background-color:rgb(240, 130, 130);
+          padding: 8px 16px;
+          background-color: rgb(240, 130, 130);
           color: white;
           border: none;
           border-radius: 5px;
           cursor: pointer;
+          transition: background-color 0.2s;
+        }
+
+        .close-button:hover {
+          background-color: rgb(220, 110, 110);
+        }
+
+        @media (max-width: 768px) {
+          .calendar-container {
+            width: 95%;
+          }
+          
+          .calendar-header {
+            font-size: 1.2em;
+          }
+          
+          .calendar-cell {
+            min-height: 80px;
+            padding: 5px;
+          }
+          
+          .popup-content {
+            width: 95%;
+            padding: 15px;
+          }
         }
       `}</style>
     </div>

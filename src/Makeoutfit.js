@@ -13,11 +13,12 @@ function MakeOutfitPage() {
     const [showModal, setShowModal] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date());
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://alumnibackend.42web.io/vwobackend';
 
     useEffect(() => {
         const fetchItems = async () => {
             try {
-                const response = await fetch("http://localhost/vwobackend/viewwardrobeitem.php");
+                const response = await fetch(`${API_BASE_URL}/viewwardrobeitem.php`);
                 const data = await response.json();
                 if (data.success) {
                     setItems(data.items);
@@ -60,11 +61,11 @@ function MakeOutfitPage() {
 
     const handleSaveToFavorites = async () => {
         try {
-            const response = await fetch("http://localhost/vwobackend/saveToFavorites.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ selectedItems: selectedItems }), 
-            });
+            const response = await fetch(`${API_BASE_URL}/saveToFavorites.php`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ selectedItems: selectedItems }), 
+});
 
             const data = await response.json();
             if (data.success) {
@@ -84,11 +85,11 @@ function MakeOutfitPage() {
     };
     const confirmSaveToCalendar = async () => {
         try {
-            const response = await fetch("http://localhost/vwobackend/saveToCalendar.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ selectedItems: selectedItems, date: selectedDate }), // Sending grouped selected items
-            });
+            const response = await fetch(`${API_BASE_URL}/saveToCalendar.php`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ selectedItems: selectedItems, date: selectedDate }),
+});
 
             const data = await response.json();
             if (data.success) {
@@ -119,7 +120,7 @@ function MakeOutfitPage() {
                                     onClick={() => handleSelectItem(category, item)}
                                     style={{ cursor: "pointer" }}>
                                     <img 
-                                        src={`http://localhost/vwobackend/uploads/${item.image_url}`} 
+                                        src={`${API_BASE_URL}/uploads/${item.image_url}`}
                                         alt={item.name} 
                                         className="card-img-top"
                                         style={{ width: "100%", height: "200px", objectFit: "contain" }}
@@ -139,7 +140,7 @@ function MakeOutfitPage() {
                     {Object.values(selectedItems).flat().map((item) => (
                         <div key={item.id} className="m-2 position-relative">
                             <img 
-                                src={`http://localhost/vwobackend/uploads/${item.image_url}`} 
+                                src={`${API_BASE_URL}/uploads/${item.image_url}`}
                                 alt={item.name} 
                                 style={{ width: "100px", height: "100px", objectFit: "contain" }}
                             />

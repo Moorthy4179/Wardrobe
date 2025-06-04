@@ -15,6 +15,7 @@ const WardrobePage = () => {
             setNavbarHeight(navbarRef.current.offsetHeight);
         }
     }, []);
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://alumnibackend.42web.io/vwobackend';
 
     const typeToNamesMap = {
         Top: ["T-Shirt", "Shirt", "Blouse", "Tank Top", "Hoodie", "Sweater", "Crop Top"],
@@ -39,10 +40,10 @@ const WardrobePage = () => {
         formData.append("image", image);
 
         try {
-            const response = await fetch("http://localhost/vwobackend/addWardrobeItem.php", {
-                method: "POST",
-                body: formData,
-            });
+            const response = await fetch(`${API_BASE_URL}/addWardrobeItem.php`, {
+    method: "POST",
+    body: formData,
+});
 
             const data = await response.json();
 

@@ -6,11 +6,11 @@ const FavoritesPage = () => {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://alumnibackend.42web.io/vwobackend';
   useEffect(() => {
     const fetchFavorites = async () => {
       try {
-        const response = await fetch("http://localhost/vwobackend/fetch_favorites.php");
+        const response = await fetch(`${API_BASE_URL}/fetch_favorites.php`);
         const data = await response.json();
 
         if (data.success && Array.isArray(data.favorites)) {
@@ -62,7 +62,7 @@ const FavoritesPage = () => {
                       ? categoryItems.map((item) => (
                           <img
                             key={item.id}
-                            src={`http://localhost/vwobackend/uploads/${item.image_url}`}
+                            src={`${API_BASE_URL}/uploads/${item.image_url}`}
                             alt="Favorite Item"
                             className="favorite-image"
                             onError={(e) => (e.target.style.display = "none")}
@@ -71,7 +71,7 @@ const FavoritesPage = () => {
                       : (
                           <img
                             key={categoryItems.id}
-                            src={`http://localhost/vwobackend/uploads/${categoryItems.image_url}`}
+                            src={`${API_BASE_URL}/uploads/${categoryItems.image_url}`}
                             alt="Favorite Item"
                             className="favorite-image"
                             onError={(e) => (e.target.style.display = "none")}

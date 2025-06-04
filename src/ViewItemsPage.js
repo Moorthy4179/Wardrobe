@@ -11,11 +11,11 @@ function WardrobeViewPage() {
     const [error, setError] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [itemToDelete, setItemToDelete] = useState(null); 
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://alumnibackend.42web.io/vwobackend';
     useEffect(() => {
         const fetchItems = async () => {
             try {
-                const response = await fetch("http://localhost/vwobackend/viewwardrobeitem.php");
+                const response = await fetch(`${API_BASE_URL}/viewwardrobeitem.php`);
                 const data = await response.json();
                 if (data.success) {
                     setItems(data.items);
@@ -35,13 +35,13 @@ function WardrobeViewPage() {
 
     const handleDeleteItem = async (itemId) => {
         try {
-            const response = await fetch("http://localhost/vwobackend/deletewardrobeitem.php", {
-                method: "POST",
-                body: JSON.stringify({ id: itemId }),
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
+            const response = await fetch(`${API_BASE_URL}/deletewardrobeitem.php`, {
+    method: "POST",
+    body: JSON.stringify({ id: itemId }),
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
             const data = await response.json();
             if (data.success) {
                 setItems(items.filter(item => item.id !== itemId));
@@ -96,7 +96,7 @@ function WardrobeViewPage() {
                             <div key={item.id} className="col-md-4 mb-4">
                                 <div className="card">
                                     <img
-                                        src={`http://localhost/vwobackend/uploads/${item.image_url}`}
+                                        src={`${API_BASE_URL}/uploads/${item.image_url}`}
                                         alt={item.name}
                                         className="card-img-top"
                                         style={{ width: "100%", height: "auto", maxHeight: "250px", objectFit: "contain" }}

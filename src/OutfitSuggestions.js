@@ -11,6 +11,7 @@ function OutfitSuggestionPage() {
         shoes: null,
         accessories: [],
     });
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://alumnibackend.42web.io/vwobackend';
 
     const [weather, setWeather] = useState(null);
     const [weatherIcon, setWeatherIcon] = useState(null);
@@ -59,18 +60,18 @@ function OutfitSuggestionPage() {
         }
     };
     const fetchOutfits = async () => {
-        try {
-            const response = await fetch("http://localhost/vwobackend/getoutfits.php");
-            const data = await response.json();
-            if (data.success) {
-                recommendTodaysOutfit(data.outfits);
-            } else {
-                setError(data.message || "Failed to fetch outfits.");
-            }
-        } catch (error) {
-            setError("Error fetching outfits.");
+    try {
+        const response = await fetch(`${API_BASE_URL}/getoutfits.php`);
+        const data = await response.json();
+        if (data.success) {
+            recommendTodaysOutfit(data.outfits);
+        } else {
+            setError(data.message || "Failed to fetch outfits.");
         }
-    };
+    } catch (error) {
+        setError("Error fetching outfits.");
+    }
+};
 
     const recommendTodaysOutfit = (allOutfits) => {
         const getRandomItem = (items) => items.length ? items[Math.floor(Math.random() * items.length)] : null;
